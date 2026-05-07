@@ -265,7 +265,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/words')
+    fetch('https://military-api-v9gu.onrender.com/words')
       .then(res => res.json())
       .then(data => setWords(data))
       .catch(err => console.error("Error:", err));
