@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import TermDetails from './TermDetails'
-import About from './About' // Импортируем твой новый файл
+import About from './About'
 
-// 1. СЛОВАРЬ ПЕРЕВОДОВ ИНТЕРФЕЙСА
 const translations = {
   EN: {
     title: "Military Terminology",
@@ -20,7 +19,8 @@ const translations = {
     reset: "Reset all",
     version: "v1.0 Military Database",
     allCategories: "All",
-    aboutLink: "About Dictionary" // Добавили перевод для ссылки
+    aboutLink: "About Dictionary",
+    loading: "Loading database..." // Новый перевод
   },
   RU: {
     title: "Военная Терминология",
@@ -37,7 +37,8 @@ const translations = {
     reset: "Сбросить всё",
     version: "v1.0 Военная база данных",
     allCategories: "Все",
-    aboutLink: "О словаре" // Добавили перевод для ссылки
+    aboutLink: "О словаре",
+    loading: "Загрузка базы данных..." // Новый перевод
   },
   KZ: {
     title: "Әскери Терминология",
@@ -54,12 +55,13 @@ const translations = {
     reset: "Барлығын қайта орнату",
     version: "v1.0 Әскери деректер қоры",
     allCategories: "Барлығы",
-    aboutLink: "Сөздік туралы" // Добавили перевод для ссылки
+    aboutLink: "Сөздік туралы",
+    loading: "Деректер қорын жүктеу..." // Новый перевод
   }
 };
 
 // --- КОМПОНЕНТ ГЛАВНОЙ СТРАНИЦЫ ---
-function Home({ words, uiLang, setUiLang, alphabets }) {
+function Home({ words, uiLang, setUiLang, alphabets, loading }) { // Добавили loading в пропсы
   const [search, setSearch] = useState("");
   const t = translations[uiLang];
 
@@ -67,6 +69,23 @@ function Home({ words, uiLang, setUiLang, alphabets }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState(null);
+
+  // --- ЛОГИКА СПИННЕРА ---
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-slate-100 p-6 text-center">
+        <div className="relative">
+          {/* Внешнее кольцо */}
+          <div className="w-16 h-16 border-4 border-slate-800 border-t-green-500 rounded-full animate-spin"></div>
+          {/* Пульсирующий центр */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-green-500/20 rounded-full animate-pulse"></div>
+        </div>
+        <p className="mt-8 text-slate-500 font-bold uppercase tracking-[0.3em] animate-pulse text-[10px]">
+          {t.loading}
+        </p>
+      </div>
+    );
+  }
 
   const categories = ["Все", ...new Set(words.map(w => w.category).filter(Boolean))];
 
@@ -104,8 +123,6 @@ function Home({ words, uiLang, setUiLang, alphabets }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-8 scrollbar-hide">
-          
-          {/* Ссылка на "About" в сайтбаре */}
           <div>
             <Link 
               to="/about" 
@@ -119,7 +136,6 @@ function Home({ words, uiLang, setUiLang, alphabets }) {
 
           <hr className="border-slate-800" />
 
-          {/* Алфавит */}
           <div>
             <h3 className="text-slate-500 text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">{t.browse}</h3>
             <div className="grid grid-cols-6 gap-1.5">
@@ -143,7 +159,6 @@ function Home({ words, uiLang, setUiLang, alphabets }) {
 
           <hr className="border-slate-800" />
 
-          {/* Категории */}
           <div>
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -257,6 +272,7 @@ function Home({ words, uiLang, setUiLang, alphabets }) {
 function App() {
   const [words, setWords] = useState([]);
   const [uiLang, setUiLang] = useState('EN');
+  const [loading, setLoading] = useState(true); // НОВЫЙ STATE ЗАГРУЗКИ
 
   const alphabets = {
     EN: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
@@ -265,28 +281,32 @@ function App() {
   };
 
   useEffect(() => {
+    setLoading(true); // Начинаем загрузку
     fetch('https://military-api-v9gu.onrender.com/words')
       .then(res => res.json())
-      .then(data => setWords(data))
-      .catch(err => console.error("Error:", err));
+      .then(data => {
+        setWords(data);
+        setLoading(false); // Загрузка завершена
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        setLoading(false); // Выключаем спиннер даже при ошибке
+      });
   }, []);
 
   return (
     <Router>
       <Routes>
-        {/* Главная страница */}
         <Route 
           path="/" 
-          element={<Home words={words} uiLang={uiLang} setUiLang={setUiLang} alphabets={alphabets} />} 
+          element={<Home words={words} uiLang={uiLang} setUiLang={setUiLang} alphabets={alphabets} loading={loading} />} 
         />
         
-        {/* Страница отдельного термина */}
         <Route 
           path="/term/:id" 
           element={<TermDetails words={words} uiLang={uiLang} />} 
         />
 
-        {/* Страница "О словаре" */}
         <Route 
           path="/about" 
           element={<About uiLang={uiLang} />} 
